@@ -4,13 +4,14 @@ Interacts with the Bureau of Economic Analysis API with python.
 By: Aaron Finocchiaro
 """
 import os
+import re
 import urllib.parse as urlparse
 import pandas as pd
 import requests
 
 BEA_API_URL = "http://apps.bea.gov/api/data?"
 
-def request_bea_data(params:list) -> dict:
+def bea_request(params:list) -> dict:
     """
     Creates query url and submits request to BEA API endpoint.
     Arguments:
@@ -19,9 +20,12 @@ def request_bea_data(params:list) -> dict:
     """
     params.update({
         'UserID' : os.environ.get('BEA_API_KEY'),
-        'method' : 'GetData',
         'ResultFormat' : 'JSON',
     })
+
+    # remove spaces from passed arugments if any spaces exist for strings only
+    params = {key: re.sub(r"\s?", "", val) if type(val) == str else val for key,val in params.items()}
+
     url_parts = list(urlparse.urlparse(BEA_API_URL))
     query = dict(urlparse.parse_qsl(url_parts[4]))
     query.update(params)
@@ -30,89 +34,62 @@ def request_bea_data(params:list) -> dict:
     results = requests.get(urlparse.urlunparse(url_parts))
     return results.json()
 
-class NIdata():
+def get_dataset_list() -> dict:
     """
-    Retrieves and organizes NIPA BEA data into a pandas dataframe.
-    Parameters:
-    TableName = str; Either NIPA or NIUnderlyingDetail
-    frequency = list; a list accepting values 'a', 'y', 'q' defining the frequency of data requested.
-    table_name = str; income or employment table to request.
-    year = list; a list of years to request data from.
+    A function to call the GetDatasetList API endpoint and list all available datasets from the
+    Bureau of Economic Analysis API.
+
+    returns: dict of dataset and their descriptions
     """
-    def __init__(self, dataset_name:str, frequency:list, table_name:str, years:list):
+    query_params = {
+        'method' : 'getdatasetlist'
+    }
+    datasets = bea_request(query_params)
+    return datasets['BEAAPI']['Results']['Dataset']
 
-        self.dataset_name = self._is_valid_dataset_name(dataset_name)
-        self.frequency = self._is_valid_frequency(frequency)
-        self.table_name = table_name
-        self.years = years
-        self.query_params = {
-            'datasetname' : 'NIPA',
-            'frequency' : ','.join(self.frequency),
-            'TableName' : self.table_name,
-            'Year' : ','.join(self.years),
-        }
-        self.raw_data = request_bea_data(self.query_params)
-        self.df = pd.DataFrame(self.raw_data['BEAAPI']['Results']['Data'])
-
-    def _is_valid_dataset_name(self, table):
-        if table.lower() not in ['nipa', "niunderlyingdetail"]:
-            raise ValueError(f"{table} is not a valid table for NIdata, use either 'NIPA' or 'NIUnderlyingDetail'.")
-        return table
-
-    def _is_valid_frequency(self, frequency):
-        for term in frequency:
-            if term.lower() not in ['a', 'm', 'q']:
-                raise ValueError(f"{term} is not a valid table for frequency, use a-annual, q-quarterly, or m-monthly.")
-        return frequency
-
-class regionalData():
+def get_dataset_params(dataset_name:str) -> dict:
     """
-    Retrieves and organizes regional BEA data into a pandas dataframe.
-    Parameters:
-    table_name = str; income or employment table to request
-    line_code = int; a specific line in the requested table to get
-    geo_fips = list; a list of integers for a specific city, town, MSA, MIC, County, CSA, or state.
-               also takes:
-               COUNTY = all counties
-               STATE = all states
-               MSA = all MSAs
-               MIC = all MICs
-               PORT = all state metro/nonmetro portions
-               DIV = all metro divisions
-               CSA = all CSAs
-               any state abbreviation = all counties in a specific state
-    year = list; a list of years to request data from
+    A function to get all of the dataset parameters for a specific dataset.
+
+    Paramters:
+        - dataset_name = str; srting value associated to a dataset
+
+    returns: dict of dataset parameters and their descriptions
     """
+    query_params = {
+        'method' : 'getparameterlist',
+        'datasetname' : dataset_name,
+    }
+    parameters = bea_request(query_params)
+    return parameters['BEAAPI']['Results']['Parameter']
 
-    def __init__(self, table_name:str, line_code:int, geo_fips:list, years:list):
+class getData():
+    """
+    Retrieves data from the get data endpoint of the Bureau of Economic Analysis API.
+    """
+    def __init__(self, **kwargs):
 
-        self.table_name = table_name
-        self.line_code = line_code
-        self.geo_fips = geo_fips
-        self.years = years
-        self.params = {
-            'datasetname' : 'Regional',
-            'TableName' : self.table_name,
-            'LineCode' : self.line_code,
-            'GeoFIPS' : ','.join(self.geo_fips),
-            'Year' : ','.join(self.years),
-        }
+        self.query_params = kwargs
 
-        self.raw_data = request_bea_data(self.params)
+        self.raw_data = bea_request(self.query_params)
         self.raw_df = pd.DataFrame(self.raw_data['BEAAPI']['Results']['Data'])
-        self.df = self._clean_df()
-
-    def _clean_df(self):
+        self.notes = self.raw_data['BEAAPI']['Results']['Notes']
+    
+    def clean_df(self, index:str, cols:str, data:str):
         """
-        Clean the raw dataframe and make it into an easily parsible dataframe.
+        cleans the raw dataframe to make it easily parsable
         """
         #deep copy to avoid overwriting
         clean_df = self.raw_df.copy()
 
-        #strip off asterisks from GeoName col
-        clean_df['GeoName'] = clean_df['GeoName'].map(lambda x: x.rstrip(r'\*'))
+        # strip asterisks off that indicate notes for a speicifc col
+        clean_df[cols] = clean_df[cols].map(lambda x: x.rstrip(r'\*'))
 
         #organize the df
-        clean_df = clean_df.pivot(index='TimePeriod', columns='GeoName')['DataValue']
+        clean_df = clean_df.pivot(index=index, columns=cols)[data]
 
         return clean_df
+
+if __name__ == "__main__":
+    bea_data = getData(datasetname="Regional",TableName="CAINC1",method='getdata',LineCode=3, GeoFIPS="04015,04027,04012,04000,00000", Year="2019")
+    print(bea_data.clean_df('TimePeriod','GeoName','DataValue'))
