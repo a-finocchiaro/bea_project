@@ -1,6 +1,6 @@
-# PyBEA
+# BEA Data
 
-PyBEA is a python library designed to interact with the Bureau of Economic Analysis API and organize the returned data into Pandas dataframes. 
+BEA Data is a python library designed to interact with the Bureau of Economic Analysis API and organize the returned data into Pandas dataframes. 
 
 Requires python 3.7+
 
@@ -30,7 +30,7 @@ The `get_dataset_list()` function is designed to just query the getdatasetlist A
 of available datasets from the BEA.
 
 ```python
-from python.bea_data import get_dataset_list
+from bea_data.bea_data import get_dataset_list
 
 get_dataset_list()
 ```
@@ -40,7 +40,7 @@ get_dataset_list()
 Gets the list of parameters that are applicable to a specific dataset from BEA. Returns a dict containing these, and their descriptions.
 
 ```python
-from python.bea_data import get_dataset_params
+from bea_data.bea_data import get_dataset_params
 
 get_dataset_params("Regional")
 ```
@@ -50,9 +50,9 @@ get_dataset_params("Regional")
 This is a class that gets the data from the BEA API and constructs a pandas dataframe from the returned data.
 
 ```python
-from pybea.bea_data import getData
+from bea_data.bea_data import getData
 
-bea_data = getData(datasetname="Regional",
+data = getData(datasetname="Regional",
                  TableName="CAINC1",
                  method='getdata',
                  LineCode=3,
@@ -74,7 +74,7 @@ A method that organizes the datafame by making a specific column the index colum
 Example:
 
 ```python
-bea_data.clean_df('TimePeriod','GeoName','DataValue')
+data.clean_df('TimePeriod','GeoName','DataValue')
 ```
 
 
