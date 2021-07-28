@@ -1,7 +1,7 @@
 from distutils.core import setup
 setup(
   name = 'pyBea',         # How you named your package folder (MyLib)
-  packages = ['py_bea'],   # Chose the same as "name"
+  packages = ['bea_data'],   # Chose the same as "name"
   version = '0.1',      # Start with a small number and increase it with every change you make
   license='MIT',        # Chose a license from here: https://help.github.com/articles/licensing-a-repository
   description = 'A python library that interacts with the Burea of Econmic Analysis API',   # Give a short description about your library
