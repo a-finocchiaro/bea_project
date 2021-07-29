@@ -1,7 +1,8 @@
 from distutils.core import setup
+from setuptools import find_packages
 setup(
   name = 'bea-data',
-  packages = ['bea-data'],
+  packages=find_packages(include=['bea_data']),
   version = '0.1',
   license='MIT',
   description = 'A python library that interacts with the Burea of Econmic Analysis API',
