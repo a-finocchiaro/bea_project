@@ -1,12 +1,12 @@
 Metadata-Version: 1.1
 Name: bea-data
-Version: 0.1
+Version: 1.0
 Summary: A python library that interacts with the Burea of Econmic Analysis API
 Home-page: https://github.com/a-finocchiaro/bea_project
 Author: Aaron Finocchiaro
 Author-email: afinny10@gmail.com
 License: MIT
-Download-URL: https://github.com/a-finocchiaro/bea_project/archive/v_01.tar.gz
+Download-URL: https://github.com/a-finocchiaro/bea_project/archive/v_1.tar.gz
 Description: UNKNOWN
 Keywords: Pandas,Economic,Analysis,Bureau
 Platform: UNKNOWN
